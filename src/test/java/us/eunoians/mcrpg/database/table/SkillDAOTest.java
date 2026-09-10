@@ -286,6 +286,22 @@ class SkillDAOTest extends McRPGBaseTest {
             verify(mockDeleteStatement).setString(1, PLAYER_UUID.toString());
             verify(mockDeleteStatement).setString(2, SKILL_KEY.value());
         }
+
+        @Test
+        @DisplayName("Throws RuntimeException on SQLException")
+        void throwsRuntimeException_onSQLException() throws SQLException {
+            Connection mockConnection = mock(Connection.class);
+            when(mockConnection.prepareStatement(anyString())).thenThrow(new SQLException("fail"));
+
+            SkillHolder mockSkillHolder = mock(SkillHolder.class);
+            SkillHolder.SkillHolderData mockData = mock(SkillHolder.SkillHolderData.class);
+            when(mockSkillHolder.getUUID()).thenReturn(PLAYER_UUID);
+            when(mockSkillHolder.getSkillHolderData(SKILL_KEY)).thenReturn(Optional.of(mockData));
+            when(mockData.getTotalExperience()).thenReturn(100);
+
+            assertThrows(RuntimeException.class,
+                    () -> SkillDAO.savePlayerSkillData(mockConnection, mockSkillHolder, SKILL_KEY));
+        }
     }
 
     @Nested

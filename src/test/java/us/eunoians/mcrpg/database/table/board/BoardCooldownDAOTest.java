@@ -7,11 +7,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import us.eunoians.mcrpg.McRPGBaseTest;
 
+import com.diamonddagger590.mccore.util.TimeProvider;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -274,6 +277,26 @@ public class BoardCooldownDAOTest extends McRPGBaseTest {
         }
 
         @Test
+        @DisplayName("Binds current time from TimeProvider")
+        void bindsCurrentTime_fromTimeProvider() throws SQLException {
+            Connection mockConnection = mock(Connection.class);
+            PreparedStatement mockStatement = mock(PreparedStatement.class);
+            ResultSet mockResultSet = mock(ResultSet.class);
+            when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+            when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+            when(mockResultSet.next()).thenReturn(false);
+
+            TimeProvider timeProvider = mcRPG.getTimeProvider();
+            Instant fixedInstant = Instant.ofEpochMilli(5000L);
+            when(timeProvider.now()).thenReturn(fixedInstant);
+
+            BoardCooldownDAO.isOnCooldown(
+                    mockConnection, "rotation", "player", "player-uuid", null, null);
+
+            verify(mockStatement).setLong(4, 5000L);
+        }
+
+        @Test
         @DisplayName("Returns false on SQLException")
         void returnsFalse_onSQLException() throws SQLException {
             Connection mockConnection = mock(Connection.class);
@@ -349,6 +372,25 @@ public class BoardCooldownDAOTest extends McRPGBaseTest {
 
             verify(mockStatement).setString(1, "entity");
             verify(mockStatement).setString(2, "land-123");
+        }
+
+        @Test
+        @DisplayName("Binds current time from TimeProvider")
+        void bindsCurrentTime_fromTimeProvider() throws SQLException {
+            Connection mockConnection = mock(Connection.class);
+            PreparedStatement mockStatement = mock(PreparedStatement.class);
+            ResultSet mockResultSet = mock(ResultSet.class);
+            when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+            when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+            when(mockResultSet.next()).thenReturn(false);
+
+            TimeProvider timeProvider = mcRPG.getTimeProvider();
+            Instant fixedInstant = Instant.ofEpochMilli(7777L);
+            when(timeProvider.now()).thenReturn(fixedInstant);
+
+            BoardCooldownDAO.listCooldowns(mockConnection, "player", "player-uuid");
+
+            verify(mockStatement).setLong(3, 7777L);
         }
 
         @Test
@@ -429,6 +471,22 @@ public class BoardCooldownDAOTest extends McRPGBaseTest {
 
             assertNotNull(statements);
             assertFalse(statements.isEmpty());
+        }
+
+        @Test
+        @DisplayName("Binds current time from TimeProvider")
+        void bindsCurrentTime_fromTimeProvider() throws SQLException {
+            Connection mockConnection = mock(Connection.class);
+            PreparedStatement mockStatement = mock(PreparedStatement.class);
+            when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+
+            TimeProvider timeProvider = mcRPG.getTimeProvider();
+            Instant fixedInstant = Instant.ofEpochMilli(9999L);
+            when(timeProvider.now()).thenReturn(fixedInstant);
+
+            BoardCooldownDAO.pruneExpiredCooldowns(mockConnection);
+
+            verify(mockStatement).setLong(1, 9999L);
         }
 
         @Test
