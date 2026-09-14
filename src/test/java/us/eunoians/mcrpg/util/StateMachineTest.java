@@ -86,4 +86,63 @@ class StateMachineTest {
         assertFalse(sm.canTransitionTo(TestState.D));
         assertThrows(IllegalStateException.class, () -> sm.transitionTo(TestState.C));
     }
+
+    @Test
+    @DisplayName("Self-transition succeeds when explicitly allowed")
+    void selfTransition_succeeds_whenAllowed() {
+        var transitions = Map.of(TestState.A, Set.of(TestState.A, TestState.B));
+        var sm = new StateMachine<>(TestState.A, transitions);
+
+        sm.transitionTo(TestState.A);
+        assertEquals(TestState.A, sm.getCurrentState());
+    }
+
+    @Test
+    @DisplayName("Self-transition is rejected when not in allowed set")
+    void selfTransition_rejected_whenNotAllowed() {
+        var transitions = Map.of(TestState.A, Set.of(TestState.B));
+        var sm = new StateMachine<>(TestState.A, transitions);
+
+        assertFalse(sm.canTransitionTo(TestState.A));
+        assertThrows(IllegalStateException.class, () -> sm.transitionTo(TestState.A));
+    }
+
+    @Test
+    @DisplayName("Failed transition does not change the current state")
+    void failedTransition_doesNotChangeState() {
+        var transitions = Map.of(TestState.A, Set.of(TestState.B));
+        var sm = new StateMachine<>(TestState.A, transitions);
+
+        assertThrows(IllegalStateException.class, () -> sm.transitionTo(TestState.C));
+        assertEquals(TestState.A, sm.getCurrentState());
+    }
+
+    @Test
+    @DisplayName("External mutation of transitions map does not affect machine")
+    void externalMutation_doesNotAffectMachine() {
+        var mutableTransitions = new java.util.HashMap<TestState, Set<TestState>>();
+        mutableTransitions.put(TestState.A, Set.of(TestState.B));
+        var sm = new StateMachine<>(TestState.A, mutableTransitions);
+
+        mutableTransitions.put(TestState.A, Set.of(TestState.C));
+
+        assertTrue(sm.canTransitionTo(TestState.B));
+        assertFalse(sm.canTransitionTo(TestState.C));
+    }
+
+    @Test
+    @DisplayName("Multi-step chained transitions follow the defined graph")
+    void chainedTransitions_followDefinedGraph() {
+        var transitions = Map.of(
+                TestState.A, Set.of(TestState.B),
+                TestState.B, Set.of(TestState.C),
+                TestState.C, Set.of(TestState.D)
+        );
+        var sm = new StateMachine<>(TestState.A, transitions);
+
+        sm.transitionTo(TestState.B);
+        sm.transitionTo(TestState.C);
+        sm.transitionTo(TestState.D);
+        assertEquals(TestState.D, sm.getCurrentState());
+    }
 }
